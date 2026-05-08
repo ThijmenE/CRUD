@@ -32,14 +32,17 @@ interface PageProps {
     flash: {
         message?: string
     },
-    products: Product[]
+    products: Product[],
+    search?: string
 }
 
 export default function Index() {
 
-    const { products, flash } = usePage().props as PageProps;
+    const { products, flash, search } = usePage().props as unknown as PageProps;
 
-    const {processing, delete: destroy} = useForm();
+    const { processing, delete: destroy, data, setData, get } = useForm({
+        search: search ?? ''
+    });
 
     const handleDelete = (id: number, name: string) => {
         if (confirm(`Do you want to delete ${id}. ${name}?`)) {
@@ -47,11 +50,35 @@ export default function Index() {
         }
     }
 
+    const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        get(route('products.index'), {
+            preserveState: true,
+            replace: true,
+        });
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Products" />
-            <div className='m-4'>
+            <div className='m-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
                 <Link href={route('products.create')}><Button>Create a product</Button></Link>
+                <form onSubmit={handleSearch} className='flex flex-col gap-2 sm:flex-row sm:items-center'>
+                    <input
+                        type='search'
+                        name='search'
+                        placeholder='Search products by name or description'
+                        value={data.search}
+                        onChange={(e) => setData('search', e.target.value)}
+                        className='rounded border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500'
+                    />
+                    <Button type='submit' disabled={processing}>Search</Button>
+                    {data.search && (
+                        <Link href={route('products.index')} className='inline-flex'>
+                            <Button type='button' className='bg-slate-500 hover:bg-slate-700'>Clear</Button>
+                        </Link>
+                    )}
+                </form>
             </div>
             <div>
                 {flash.message && (
@@ -64,7 +91,7 @@ export default function Index() {
                     </Alert>
                 )}
             </div>
-            {products.length > 0 && (
+            {products.length > 0 ? (
                 <div className='m-4'>
                     <Table>
                         <TableCaption>A list of your recent products.</TableCaption>
@@ -93,6 +120,14 @@ export default function Index() {
 
                         </TableBody>
                     </Table>
+                </div>
+            ) : (
+                <div className='m-4 rounded border border-dashed border-slate-300 bg-slate-50 p-6 text-slate-700'>
+                    {search ? (
+                        <p>No products matched "{search}".</p>
+                    ) : (
+                        <p>No products found. Add one using the Create button.</p>
+                    )}
                 </div>
             )}
         </AppLayout>

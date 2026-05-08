@@ -8,10 +8,19 @@ use Inertia\Inertia;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::all();
-        return Inertia::render('Products/Index', compact('products'));
+        $search = $request->input('search');
+
+        $products = Product::query()
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return Inertia::render('Products/Index', compact('products', 'search'));
     }
 
     public function create()
